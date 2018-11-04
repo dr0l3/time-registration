@@ -9,7 +9,8 @@
         "start": "npm run dev",
         "dev": "webpack-dev-server --hot --colors --port 3000",
         "build": "webpack",
-        "prod": "webpack -p"
+        "prod": "webpack -p",
+        "postinstall": "install-app-deps"
     },
     "repository": {
         "type": "git",
@@ -23,6 +24,7 @@
         "clean-webpack-plugin": "^0.1.19",
         "copy-webpack-plugin": "^4.5.2",
         "css-loader": "^1.0.0",
+        "electron-builder": "^20.31.2",
         "elm": "^0.19.0-bugfix2",
         "elm-hot-webpack-loader": "^1.0.2",
         "elm-test": "^0.19.0-beta10",
@@ -42,8 +44,8 @@
         "webpack-merge": "^4.1.4"
     },
     "dependencies": {
-        "better-sqlite3": "^5.0.1",
         "electron": "^3.0.6",
+        "nedb": "^1.8.0",
         "purecss": "^1.0.0"
     },
     "prettier": {

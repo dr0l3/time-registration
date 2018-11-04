@@ -7,6 +7,13 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http exposing (Error(..))
 import Json.Decode as Decode
+import Json.Encode as Encode
+import Debug
+import Html exposing (..)
+import Bootstrap.CDN as CDN
+import Bootstrap.Grid as Grid
+import Bootstrap.Button as Button
+import Bootstrap.Table as Table
 
 
 
@@ -15,9 +22,15 @@ import Json.Decode as Decode
 -- ---------------------------
 
 
-port toJs : String -> Cmd msg
+--port toJs : String -> Cmd msg
 
+port storeTimeSheet: Encode.Value -> Cmd msg
 
+port requestTimeSheets: Int -> Cmd msg
+
+port showTimeSheets: (Decode.Value -> msg) -> Sub msg
+
+port deleteTimeSheet: String -> Cmd msg
 
 -- ---------------------------
 -- MODEL
@@ -27,12 +40,40 @@ port toJs : String -> Cmd msg
 type alias Model =
     { counter : Int
     , serverMessage : String
+    , timeSheets : List Timeshet
+    , error: Maybe String
+    , currentPage : SheetPage
     }
 
+type alias SheetPage =
+    { pageNumber: Int
+    , timeSheets: List Timeshet
+    }
+
+type alias Timeshet = 
+    { id : String
+    , startTs : Int
+    , endTs : Int
+    , company: String
+    }
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    showTimeSheets (decodeTimeSheetPage >> UpdateTimeSheets)
+
+decodeTimeSheetPage: Decode.Value -> Result Decode.Error SheetPage
+decodeTimeSheetPage =
+    Decode.decodeValue (Decode.map2 SheetPage 
+        (Decode.field "pageNumber" Decode.int)
+        (Decode.field "timesheets" (Decode.list (Decode.map4 Timeshet 
+            (Decode.field "_id" Decode.string)
+            (Decode.field "start" Decode.int)
+            (Decode.field "end" Decode.int)
+            (Decode.field "company" Decode.string)))))
 
 init : Int -> ( Model, Cmd Msg )
 init flags =
-    ( { counter = flags, serverMessage = "" }, Cmd.none )
+    ( { counter = flags, serverMessage = "", timeSheets = [], error = Nothing, currentPage = SheetPage 0 [] }, Cmd.none )
 
 
 
@@ -46,16 +87,20 @@ type Msg
     | Set Int
     | TestServer
     | OnServerResponse (Result Http.Error String)
+    | SendTimesheet
+    | UpdateTimeSheets (Result Decode.Error SheetPage)
+    | RefreshTimesheets
+    | DeleteTimeSheet String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
     case message of
         Inc ->
-            ( add1 model, toJs "Hello Js" )
+            ( add1 model, Cmd.none )
 
         Set m ->
-            ( { model | counter = m }, toJs "Hello Js" )
+            ( { model | counter = m }, Cmd.none )
 
         TestServer ->
             ( model
@@ -70,6 +115,33 @@ update message model =
 
                 Err err ->
                     ( { model | serverMessage = "Error: " ++ httpErrorToString err }, Cmd.none )
+
+        SendTimesheet ->
+            (model , storeTimeSheet (Encode.object [("start", Encode.int 1), ("end", Encode.int 2), ("company", Encode.string "mycompany")]))
+                
+        UpdateTimeSheets result ->
+            case result of
+                Ok sheetPage ->
+                    case sheetPage.timeSheets of 
+                        [] ->
+                            let
+                                pageNumber = Basics.max (model.currentPage.pageNumber - 1) 0
+                                updateSheetPage = SheetPage pageNumber model.currentPage.timeSheets
+                            in
+                                ({model | error = Nothing, currentPage = updateSheetPage}, Cmd.none)
+                        _ -> 
+                            ({model | error = Nothing, currentPage = sheetPage}, Cmd.none)
+                Err err ->
+                    ({model | error = Just <| Decode.errorToString err }, Cmd.none)
+        RefreshTimesheets ->
+            (model, requestTimeSheets <| model.currentPage.pageNumber + 1)
+        DeleteTimeSheet id ->
+            let
+                withRemoveTimesheet = List.filter (\elem -> elem.id /= id ) model.currentPage.timeSheets
+                currentPage = SheetPage model.currentPage.pageNumber withRemoveTimesheet
+            in
+                ({model | currentPage = currentPage}, deleteTimeSheet id)
+            
 
 
 httpErrorToString : Http.Error -> String
@@ -109,40 +181,57 @@ add1 model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "container" ]
-        [ header []
-            [ -- img [ src "/images/logo.png" ] []
-              span [ class "logo" ] []
-            , h1 [] [ text "Elm 0.19 Webpack Starter, with hot-reloading." ]
+    Grid.container []
+        [ CDN.stylesheet
+        , Grid.row []
+            [ Grid.col [] 
+                [ div [] [ h1 [] [ text "Time registration for busy consultant" ]] ]
             ]
-        , p [] [ text "Click on the button below to increment the state." ]
-        , div [ class "pure-g" ]
-            [ div [ class "pure-u-1-3" ]
-                [ button
-                    [ class "pure-button pure-button-primary"
-                    , onClick Inc
-                    ]
-                    [ text "+ 1" ]
+        , Grid.row []
+            [ Grid.col []
+                [  Button.button [ Button.primary, Button.attrs [ onClick Inc ]] [text "+ 1"]
                 , text <| String.fromInt model.counter
                 ]
-            , div [ class "pure-u-1-3" ] []
-            , div [ class "pure-u-1-3" ]
-                [ button
-                    [ class "pure-button pure-button-primary"
-                    , onClick TestServer
-                    ]
-                    [ text "ping dev server" ]
+            ]
+        , Grid.row []
+            [ Grid.col []
+                [ Button.button [Button.primary, Button.attrs [ onClick TestServer]] [text "ping dev server"]
                 , text model.serverMessage
                 ]
             ]
-        , p [] [ text "Then make a change to the source code and see how the state is retained after you recompile." ]
-        , p []
-            [ text "And now don't forget to add a star to the Github repo "
-            , a [ href "https://github.com/simonh1000/elm-webpack-starter" ] [ text "elm-webpack-starter" ]
+        , Grid.row []
+            [ Grid.col []
+                [ Button.button [Button.primary, Button.attrs [ onClick SendTimesheet]] [text "Send timesheet!"]
+                , Button.button [Button.primary, Button.attrs [onClick RefreshTimesheets]] [text "Get timesheets!"]
+                ]
+            ]
+        , Grid.row []
+            [ Grid.col []
+                [ renderTimeSheetTable model ]
             ]
         ]
 
+renderTimeSheetTable: Model -> Html Msg
+renderTimeSheetTable model =
+    Table.table 
+        { options = [ ]
+        , thead = Table.simpleThead
+            [ Table.th [] [ text "Start"]
+            , Table.th [] [ text "End"]
+            , Table.th [] [ text "Company"]
+            , Table.th [] []
+            ]
+        , tbody = Table.tbody [] (List.map renderTimeSheetRow model.currentPage.timeSheets)
+        }
 
+renderTimeSheetRow: Timeshet -> Table.Row Msg
+renderTimeSheetRow timesheet = 
+    Table.tr []
+        [ Table.td [] [ text <| String.fromInt timesheet.startTs]
+        , Table.td [] [ text <| String.fromInt timesheet.endTs]
+        , Table.td [] [ text timesheet.company]
+        , Table.td [] [ Button.button [Button.danger, Button.small, Button.attrs [ onClick <| DeleteTimeSheet timesheet.id]] [text "-"]]
+        ]
 
 -- ---------------------------
 -- MAIN
@@ -156,5 +245,5 @@ main =
         , update = update
         , view =
             \model -> view model
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         }

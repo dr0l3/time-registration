@@ -16,6 +16,9 @@ var filename = MODE == "production" ? "[name]-[hash].js" : "index.js";
 var common = {
     mode: MODE,
     entry: "./src/assets/index.js",
+    node: {
+        fs: 'empty'
+    },
     output: {
         path: path.join(__dirname, "dist"),
         publicPath: "/",
@@ -34,8 +37,15 @@ var common = {
         modules: [path.join(__dirname, "src"), "node_modules"],
         extensions: [".js", ".elm", ".scss", ".png"]
     },
+    externals: {
+        sqlite3: 'commonjs sqlite3'
+    },
     module: {
         rules: [
+            {
+                test: /\.js$/,
+                use: ["remove-hashbag-loader"]
+            },
             {
                 test: /\.js$/,
                 exclude: /node_modules/,
@@ -74,6 +84,11 @@ var common = {
                 loader: "file-loader"
             }
         ]
+    },
+    resolveLoader: {
+        alias: {
+          "remove-hashbag-loader": path.join(__dirname, "./loaders/remove-hashbag-loader")
+        }
     }
 };
 
