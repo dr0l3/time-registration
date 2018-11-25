@@ -4,9 +4,12 @@ const {styles} = require('./styles.scss');
 const {Elm} = require('../elm/Main');
 import { ExportToCsv } from 'export-to-csv';
 
+const remote = window.require('electron').remote;
+var ipcRenderer = window.require('electron').ipcRenderer;
+
 
 var node = document.getElementById("elm");
-var app = Elm.Main.init({flags: false, node: node});
+var app = Elm.Main.init({flags: true, node: node});
 
 var Datastore = require('nedb')
   , timesheetStore = new Datastore({ filename: 'example.db',autoload: true})
@@ -24,13 +27,15 @@ app.ports.storeTimeSheet.subscribe(data => {
       timesheetStore.update({_id: payload._id}, payload, {},function (err, newDoc){
         console.log("err during insert of timehssets: " + err);
         console.log(newDoc)
-        requestTimesheets(pageNumber)
+        var window = remote.getCurrentWindow();
+        window.close();
       })
     } else {
       timesheetStore.insert(payload, function (err, newDoc){
           console.log("err during insert of timehssets: " + err);
           console.log(newDoc)
-          requestTimesheets(pageNumber)
+          var window = remote.getCurrentWindow();
+          window.close();
       })
     }
 });
@@ -140,6 +145,11 @@ app.ports.exportCsv.subscribe( () =>{
     csvExporter.generateCsv(data);
   });
 })
+
+ipcRenderer.on('save-timesheet', function (event,store) {
+    console.log(store);
+    app.ports.saveTimesheet.send("hello")
+});
 
 // Use ES2015 syntax and let Babel compile it for you
 var testFn = (inp) => {

@@ -199,4 +199,6 @@ typings/
 # FuseBox cache
 .fusebox/
 
+*.db
+
 # End of https://www.gitignore.io/api/elm,node,intellij+all

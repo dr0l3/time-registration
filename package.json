@@ -24,7 +24,9 @@
         "clean-webpack-plugin": "^0.1.19",
         "copy-webpack-plugin": "^4.5.2",
         "css-loader": "^1.0.0",
-        "electron-builder": "^20.31.2",
+        "electron-builder": "^20.36.2",
+        "electron": "^3.0.6",
+        "electron-builder": "20.26.0",
         "elm": "^0.19.0-bugfix2",
         "elm-hot-webpack-loader": "^1.0.2",
         "elm-test": "^0.19.0-beta10",
@@ -44,7 +46,10 @@
         "webpack-merge": "^4.1.4"
     },
     "dependencies": {
-        "electron": "^3.0.6",
+        "cron": "^1.5.0",
+        "electron-localshortcut": "^3.1.0",
+        "export-to-csv": "^0.1.2",
+        "jquery": "^3.3.1",
         "nedb": "^1.8.0",
         "purecss": "^1.0.0"
     },
