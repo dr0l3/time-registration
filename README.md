@@ -39,3 +39,5 @@
 - DevTools removal
 - Correct db locations
 - Test builder
+- Taskbard icon
+- Minimization/closing
