@@ -19,11 +19,11 @@ var Datastore = require('nedb')
 app.ports.storeTimeSheet.subscribe(data => {
     const payload = data.payload
     const pageNumber = data.currentPage
-    console.log(data)
+    console.log("Inserting data",data)
     if(payload._id != null) {
       timesheetStore.update({_id: payload._id}, payload, {},function (err, newDoc){
-        console.log("err during insert of timehssets: " + err);
-        console.log(newDoc)
+        console.log("err during insert of timehssets: ",err);
+        console.log("Newdoc", newDoc)
         requestTimesheets(pageNumber)
       })
     } else {

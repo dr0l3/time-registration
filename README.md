@@ -33,11 +33,9 @@
     - Add ability to mark timeslot as "non-invoiceable"? <-- v2 feature
 - Settings
   - Show settings page
+- Graphs and statistics
 
 ## TODO
-- Menu cleanup
-- DevTools removal
 - Correct db locations
 - Test builder
-- Taskbard icon
-- Minimization/closing
+- Move things into the right places

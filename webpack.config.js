@@ -15,19 +15,12 @@ var filename = MODE == "production" ? "[name]-[hash].js" : "index.js";
 
 var common = {
     mode: MODE,
-    entry: {
-      main: "./src/assets/index.js",
-      popup: "./src/assets/popup.js"
-    },
-    node: {
-        fs: 'empty'
-    },
-    target: "node",
+    entry: "./src/assets/index.js",
     output: {
         path: path.join(__dirname, "dist"),
         publicPath: "/",
         // webpack -p automatically adds hash when building for production
-        filename: '[name].js'
+        filename: filename
     },
     plugins: [
         new HTMLWebpackPlugin({

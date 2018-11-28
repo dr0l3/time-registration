@@ -30,6 +30,7 @@ import Verify as Verify exposing (Validator, verify, validate)
 import Maybe.Verify
 import Html exposing (Html)
 import Iso8601 as IsoUtils
+import Maybe.Extra as MBE
 
 -- ---------------------------
 -- PORTS
@@ -537,6 +538,8 @@ renderPopupMode model =
   Grid.container []
       [ CDN.stylesheet
       , Grid.row []
+          [ Grid.col [] [div [class "row mt-4"] []] ]
+      , Grid.row []
           [ Grid.col [] [renderAddTimesheetForm model]
           ]
       ]
@@ -586,7 +589,7 @@ renderAddTimesheetForm model =
               ]
             , Form.col [ ]
               [ Form.label [] [text "Company"]
-              , Select.select [Select.attrs [ onInput AddSelectCompany]] <| companySelectItems model
+              , Select.select [Select.onChange AddSelectCompany] <| companyNamesAdd model
               ]
             ]
         , Form.row []
@@ -611,7 +614,7 @@ renderEditTimesheetForm model =
               ]
             , Form.col [ ]
               [ Form.label [] [text "Company"]
-              , Select.select [Select.attrs [ onInput EditSelectCompany]] <| companySelectItems model
+              , Select.select [Select.onChange EditSelectCompany] <| companyNamesEdit model
               ]
             ]
         , Form.row []
@@ -634,10 +637,30 @@ timePicker elementId =
       ]
     ]
 
+companyNamesAdd: Model -> List (Select.Item msg)
+companyNamesAdd model =
+  List.map (\companyName -> Select.item (if selectedAdd companyName model then [ attribute "selected" "selected" ] else []) [text companyName]) model.companyList
 
-companySelectItems: Model -> List (Select.Item msg)
-companySelectItems model =
-  List.map (\companyName -> Select.item [] [text companyName]) model.companyList
+selectedAdd: String -> Model -> Bool
+selectedAdd companyName model =
+  Maybe.withDefault False (Maybe.map (\selectedName -> companyName == selectedName) model.addSelectCompany)
+
+companyNamesEdit: Model -> List (Select.Item msg)
+companyNamesEdit model =
+  List.map (\companyName -> Select.item (if selectedEdit companyName model then [ attribute "selected" "selected" ] else []) [text companyName]) model.companyList
+
+selectedEdit: String -> Model -> Bool
+selectedEdit companyName model =
+  Maybe.withDefault False (Maybe.map (\selectedName -> companyName == selectedName) model.editSelectCompany)
+
+companySelectItemsEdit: Model -> List (Select.Item msg)
+companySelectItemsEdit model =
+  let
+    remaining = LE.filterNot (\listName -> Maybe.withDefault False (Maybe.map (\maybeName -> listName == maybeName) model.editSelectCompany)) model.companyList
+    allCompanyNames = (MBE.toList model.editSelectCompany) ++ remaining
+    _ = Debug.log "names" allCompanyNames
+  in
+    List.map (\companyName -> Select.item [] [text companyName]) allCompanyNames
 
 comparePosixDescending: Posix -> Posix -> Order
 comparePosixDescending a b =
